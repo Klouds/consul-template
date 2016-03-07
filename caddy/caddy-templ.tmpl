@@ -1,0 +1,14 @@
+{{ range services }}
+{{ range service .Name }}
+{{ $outer := . }}
+{{range .Tags}}
+{{ . }} {
+proxy / {{$outer.Address}}:{{$outer.Port}} {
+policy least_conn
+fail_timeout 10s
+max_fails 0
+}
+}
+{{end}}
+{{end}}
+{{end}}

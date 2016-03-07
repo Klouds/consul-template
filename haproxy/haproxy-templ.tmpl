@@ -1,0 +1,43 @@
+defaults
+	mode tcp
+	timeout connect 5000
+	timeout client 50000
+	timeout server 50000
+
+frontend http-in
+	mode http
+	bind *:80
+{{ range services }}
+{{ range service .Name }}
+{{ $outer := . }}
+{{range .Tags}}
+	{{if ne . "tcp"}}
+	acl {{ $outer.ID }} hdr(host) -i {{ . }}
+	use_backend {{$outer.ID}}_backend if {{$outer.ID}}
+	{{end}}
+{{end}}
+{{end}}
+{{end}}
+
+
+{{range $i1, $s1 := services}}
+{{range $i2, $s2 := service .Name}}
+{{$outer := .}}
+{{range $i3, $s3 := .Tags}}
+{{if ne . "tcp"}}
+backend {{$outer.ID}}_backend
+balance leastconn
+mode http
+option forwardfor
+server s{{$i1}}{{$i2}}{{$i3}} {{$outer.Address}}:{{$outer.Port}}
+{{end}}
+{{if eq . "tcp"}}
+listen {{$outer.ID}}
+mode tcp
+bind *:{{$outer.Port}}
+balance leastconn
+server s{{$i1}}{{$i2}}{{$i3}} {{$outer.Address}}:{{$outer.Port}}
+{{end}}
+{{end}}
+{{end}}
+{{end}}
